@@ -1,0 +1,14 @@
+{
+  "domain": "recteq",
+  "name": "RecTeq",
+  "version": "0.1.0",
+  "documentation": "https://github.com/macsux/homeassistant-recteq",
+  "issue_tracker": "https://github.com/macsux/homeassistant-recteq/issues",
+  "codeowners": ["@macsux"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "device",
+  "requirements": ["tinytuya>=1.16.0"],
+  "dependencies": [],
+  "after_dependencies": ["http"]
+}

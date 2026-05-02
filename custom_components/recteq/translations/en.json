@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "RecTeq sign-in",
+        "description": "Enter the email and password you use in the RecTeq app. We'll fetch your grills from the cloud, then talk to them directly over your local network — no further internet round-trips.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "pick_device": {
+        "title": "Choose a grill",
+        "description": "Multiple supported RecTeq grills on this account — pick one to add.",
+        "data": {
+          "device_id": "Grill"
+        }
+      },
+      "manual_ip": {
+        "title": "Enter LAN IP for {device_name}",
+        "description": "We couldn't auto-discover {device_name} on your local network — usually because Home Assistant is running in a Docker container that doesn't see UDP broadcasts (common on Docker Desktop for Mac/Windows). Enter the grill's local IP from your router. Linux/HAOS installs typically don't see this step.",
+        "data": {
+          "host": "LAN IP address"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Email or password incorrect.",
+      "cannot_connect": "Could not reach the RecTeq cloud. Check your internet.",
+      "api_error": "RecTeq API returned an error. Try again in a minute.",
+      "invalid_host": "That doesn't look like a valid IPv4 address."
+    },
+    "abort": {
+      "already_configured": "This grill is already set up.",
+      "no_supported_devices": "No supported RecTeq grills on this account."
+    }
+  }
+}
