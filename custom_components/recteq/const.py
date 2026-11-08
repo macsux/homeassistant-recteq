@@ -62,6 +62,7 @@ CONF_DEVICE_ID = "device_id"
 CONF_LOCAL_KEY = "local_key"
 CONF_HOST = "host"
 CONF_DEVICE_NAME = "device_name"
+CONF_PRODUCT_ID = "product_id"
 
 # ── DualFire 2000 DP map ───────────────────────────────────────────────────
 # DP -> entity descriptor. Used by every platform module. New RecTeq models
@@ -107,10 +108,42 @@ DUALFIRE_DPS = [
     (120, "binary_sensor", "right_error_3", "Right Error 3", {"device_class": "problem"}),
 ]
 
+# ── RT-B380X Bullseye Deluxe DP map ────────────────────────────────────────
+# Single-zone pellet grill, protocol 3.4. Read live from a B380X on 2026-11-08:
+#   {'2': True, '101': 225, '102': 221, '103': 0, '104': 20, '105': 0,
+#    '106': False, '107': False, '108': False}
+# 2/101/102 match the recteq app. 103-108 follow the DualFire layout shifted
+# down (one probe, one feed rate, one calibration, three error flags).
+
+BULLSEYE_DELUXE_DPS = [
+    (2, "switch", "power", "Power", {}),
+    (101, "number", "setpoint", "Setpoint",
+     {"min": 200, "max": 750, "step": 5, "unit": "°F", "icon": "mdi:thermometer-chevron-up"}),
+    (102, "sensor", "pit_temp", "Pit Temp",
+     {"unit": "°F", "device_class": "temperature"}),
+    (103, "sensor", "probe_a", "Probe A",
+     {"unit": "°F", "device_class": "temperature"}),
+    (104, "number", "min_feed", "Min Feed Rate",
+     {"min": 5, "max": 250, "step": 5, "unit": "%"}),
+    (105, "number", "calibration", "Temp Calibration",
+     {"min": -25, "max": 25, "step": 1, "unit": "°F"}),
+    (106, "binary_sensor", "error_1", "Error 1", {"device_class": "problem"}),
+    (107, "binary_sensor", "error_2", "Error 2", {"device_class": "problem"}),
+    (108, "binary_sensor", "error_3", "Error 3", {"device_class": "problem"}),
+]
+
 # Product ID → DP map (cloud API tells us which model we're talking to).
 # When new RecTeq models surface, add their DUALFIRE_DPS-equivalent here.
+DUALFIRE_PRODUCT_ID = "q5utybemjsoh72nx"
 PRODUCT_DP_MAPS = {
-    "q5utybemjsoh72nx": DUALFIRE_DPS,  # DualFire 2000
+    DUALFIRE_PRODUCT_ID: DUALFIRE_DPS,       # DualFire 2000
+    "fasfaumc9mykaws3": BULLSEYE_DELUXE_DPS,  # RT-B380X Bullseye Deluxe
 }
+
+
+def dp_map_for(entry_data: dict) -> list:
+    """DP map for a config entry. Entries created before the product id was
+    stored are all DualFire 2000s (the only model supported then)."""
+    return PRODUCT_DP_MAPS.get(entry_data.get(CONF_PRODUCT_ID), DUALFIRE_DPS)
 
 PLATFORMS = ["switch", "sensor", "number", "binary_sensor"]
