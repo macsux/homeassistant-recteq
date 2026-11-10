@@ -112,8 +112,12 @@ DUALFIRE_DPS = [
 # Single-zone pellet grill, protocol 3.4. Read live from a B380X on 2026-11-08:
 #   {'2': True, '101': 225, '102': 221, '103': 0, '104': 20, '105': 0,
 #    '106': False, '107': False, '108': False}
-# 2/101/102 match the recteq app. 103-108 follow the DualFire layout shifted
-# down (one probe, one feed rate, one calibration, three error flags).
+# 2/101/102 match the recteq app; writing 2 and 101 lights, shuts down and
+# sets the grill. 103 tracked a probe in a chicken from 111 to 189 °F during a
+# cook on 2026-11-09 and read 0 while unplugged. 104-108 follow the DualFire
+# layout shifted down but never changed during that cook, so 104/105 stay
+# read-only until someone confirms them. While the grill is off, 102/103 keep
+# their last value instead of dropping.
 
 BULLSEYE_DELUXE_DPS = [
     (2, "switch", "power", "Power", {}),
@@ -122,11 +126,9 @@ BULLSEYE_DELUXE_DPS = [
     (102, "sensor", "pit_temp", "Pit Temp",
      {"unit": "°F", "device_class": "temperature"}),
     (103, "sensor", "probe_a", "Probe A",
-     {"unit": "°F", "device_class": "temperature"}),
-    (104, "number", "min_feed", "Min Feed Rate",
-     {"min": 5, "max": 250, "step": 5, "unit": "%"}),
-    (105, "number", "calibration", "Temp Calibration",
-     {"min": -25, "max": 25, "step": 1, "unit": "°F"}),
+     {"unit": "°F", "device_class": "temperature", "zero_is_unplugged": True}),
+    (104, "sensor", "min_feed", "Min Feed Rate", {"unit": "%"}),
+    (105, "sensor", "calibration", "Temp Calibration", {"unit": "°F"}),
     (106, "binary_sensor", "error_1", "Error 1", {"device_class": "problem"}),
     (107, "binary_sensor", "error_2", "Error 2", {"device_class": "problem"}),
     (108, "binary_sensor", "error_3", "Error 3", {"device_class": "problem"}),

@@ -37,7 +37,11 @@ class RecTeqSensor(RecTeqEntity, SensorEntity):
             self._attr_suggested_unit_of_measurement = extras["unit"]
         if extras.get("device_class") == "temperature":
             self._attr_device_class = SensorDeviceClass.TEMPERATURE
+        # Probes that report 0 when unplugged show as unknown, not 0 °F.
+        self._zero_is_unplugged = extras.get("zero_is_unplugged", False)
 
     @property
     def native_value(self) -> Any:
+        if self._zero_is_unplugged and self._dp_value == 0:
+            return None
         return self._dp_value
