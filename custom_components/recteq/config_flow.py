@@ -27,7 +27,10 @@ from .const import (
     CONF_EMAIL,
     CONF_HOST,
     CONF_LOCAL_KEY,
+    CONF_PRODUCT_ID,
     DOMAIN,
+    LOCAL_PORT,
+    PROTOCOL_VERSION,
     PRODUCT_DP_MAPS,
 )
 from .oem_api import (
@@ -36,6 +39,7 @@ from .oem_api import (
     OemApiError,
     OemAuthError,
     discover_lan_ip,
+    probe_lan_ip,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,6 +118,17 @@ class RecTeqConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
 
         ip = await discover_lan_ip(self._chosen.dev_id, timeout=4.0)
+        if not ip:
+            # UDP broadcasts can be dropped (Docker bridge, firewall); try a
+            # TCP probe of the local /24 before asking the user for the IP.
+            # The grill needs its local key to come up on the LAN (fetched
+            # in step 1 via get_device), so make sure we have it.
+            if not self._chosen.local_key:
+                self._chosen = await self._client.get_device(self._chosen.dev_id)
+            ip = await probe_lan_ip(
+                self._chosen.dev_id, self._chosen.local_key,
+                version=PROTOCOL_VERSION, port=LOCAL_PORT,
+            )
         if ip:
             return self._create(ip)
         return await self.async_step_manual_ip()
@@ -150,5 +165,6 @@ class RecTeqConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_LOCAL_KEY: d.local_key,
                 CONF_HOST: ip,
                 CONF_DEVICE_NAME: d.name or "RecTeq",
+                CONF_PRODUCT_ID: d.product_id,
             },
         )

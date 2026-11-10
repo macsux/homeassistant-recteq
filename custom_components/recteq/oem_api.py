@@ -399,3 +399,67 @@ async def discover_lan_ip(dev_id: str, timeout: float = 8.0) -> str | None:
         if c.dev_id == dev_id:
             return c.ip
     return None
+
+
+def _primary_ipv4() -> str | None:
+    """This host's LAN address. A UDP connect sends no packets; it only picks
+    the outbound interface."""
+    import socket
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+async def probe_lan_ip(
+    dev_id: str, local_key: str, version: float = 3.4, port: int = 6668
+) -> str | None:
+    """Fallback when UDP discovery finds nothing (Docker bridges, Windows
+    firewall, some mesh routers drop broadcasts).
+
+    TCP-connects to the Tuya port on every host of this machine's /24, then
+    confirms the grill by reading its status with the local key, so another
+    Tuya device on the network is never mistaken for it.
+    """
+    import ipaddress
+
+    import tinytuya
+
+    own = _primary_ipv4()
+    if not own or not ipaddress.IPv4Address(own).is_private:
+        return None
+    net = ipaddress.IPv4Network(f"{own}/24", strict=False)
+    sem = asyncio.Semaphore(64)
+
+    async def _open(ip: str) -> str | None:
+        async with sem:
+            try:
+                _r, w = await asyncio.wait_for(asyncio.open_connection(ip, port), 0.8)
+            except (OSError, asyncio.TimeoutError):
+                return None
+            w.close()
+            return ip
+
+    hosts = [str(h) for h in net.hosts() if str(h) != own]
+    open_ips = [ip for ip in await asyncio.gather(*(_open(h) for h in hosts)) if ip]
+
+    def _is_grill(ip: str) -> bool:
+        try:
+            d = tinytuya.Device(dev_id, ip, local_key, version=version)
+            d.set_socketTimeout(5)
+            d.set_socketRetryLimit(1)
+            st = d.status()
+            return bool(st and "dps" in st)
+        except Exception:
+            return False
+
+    loop = asyncio.get_running_loop()
+    for ip in open_ips:
+        if await loop.run_in_executor(None, _is_grill, ip):
+            return ip
+    return None

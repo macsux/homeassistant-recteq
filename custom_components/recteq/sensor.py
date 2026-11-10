@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, PRODUCT_DP_MAPS
+from .const import DOMAIN, dp_map_for
 from .coordinator import RecTeqCoordinator
 from .entity import RecTeqEntity
 
@@ -17,7 +17,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, add_entities: AddEntitiesCallback
 ) -> None:
     coord: RecTeqCoordinator = hass.data[DOMAIN][entry.entry_id]
-    dps = PRODUCT_DP_MAPS["q5utybemjsoh72nx"]
+    dps = dp_map_for(entry.data)
     add_entities(
         RecTeqSensor(coord, entry, dp, slug, friendly, extras)
         for dp, plat, slug, friendly, extras in dps
@@ -37,7 +37,11 @@ class RecTeqSensor(RecTeqEntity, SensorEntity):
             self._attr_suggested_unit_of_measurement = extras["unit"]
         if extras.get("device_class") == "temperature":
             self._attr_device_class = SensorDeviceClass.TEMPERATURE
+        # Probes that report 0 when unplugged show as unknown, not 0 °F.
+        self._zero_is_unplugged = extras.get("zero_is_unplugged", False)
 
     @property
     def native_value(self) -> Any:
+        if self._zero_is_unplugged and self._dp_value == 0:
+            return None
         return self._dp_value

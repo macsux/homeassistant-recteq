@@ -1,6 +1,6 @@
 # RecTeq for Home Assistant
 
-Local-only Home Assistant integration for RecTeq Wi-Fi grills (DualFire 2000, with more models to come).
+Local-only Home Assistant integration for RecTeq Wi-Fi grills (DualFire 2000 and RT-B380X Bullseye Deluxe, with more models to come).
 
 After a one-time login with your RecTeq app credentials, this integration talks to the grill **directly over your local network** — no cloud round-trips, sub-second response, and it keeps working when your internet goes down.
 
@@ -16,6 +16,13 @@ For the DualFire 2000:
 - **Numbers** — Setpoints (180–700 °F), min feed rate, temperature calibration
 - **Sensors** — Pit temps (left/right), four meat probes (A–D)
 - **Binary sensors** — Three error flags per side (problem device class — show red on dashboards)
+
+For the RT-B380X Bullseye Deluxe:
+
+- **Switch** — Power
+- **Numbers** — Setpoint (200–750 °F), min feed rate, temperature calibration
+- **Sensors** — Pit temp, meat probe A
+- **Binary sensors** — Three error flags
 
 All grouped under one device in HA's device registry, native °F (so HA's metric locale doesn't auto-convert your cook temps to °C).
 
@@ -39,14 +46,15 @@ The integration logs in to RecTeq's branded Tuya OEM API (`a1.tuyaus.com`) with 
 
 The OEM API client ID, app secret, and signing keys are constants extracted from the official RecTeq Android app — they are app-level identifiers, not user secrets, and are baked into this integration so the user only ever needs their own account credentials.
 
-After cloud listing, we still UDP-scan the local network to discover the grill's current LAN IP. This works on Linux / HAOS / Pi installs out of the box. On Docker Desktop for macOS or Windows the bridge network swallows broadcasts, so a manual IP entry step appears as a fallback.
+After cloud listing, we still UDP-scan the local network to discover the grill's current LAN IP. This works on Linux / HAOS / Pi installs out of the box. On Docker Desktop for macOS or Windows the bridge network swallows broadcasts (a host firewall can do the same), so the integration then TCP-probes port 6668 across the local /24 and confirms the grill by reading its status with the local key. A manual IP entry step appears only if that also fails.
 
 ## Supported devices
 
 | Model | Product ID | Status |
 |---|---|---|
 | DualFire 2000 | `q5utybemjsoh72nx` | ✅ |
-| Bullseye, RT-700, RT-1250, etc. | — | Open an issue with your `productId` from `Settings → Devices & Services → RecTeq → Diagnostic` |
+| RT-B380X Bullseye Deluxe | `fasfaumc9mykaws3` | ✅ |
+| RT-700, RT-1250, etc. | — | Open an issue with your `productId` from `Settings → Devices & Services → RecTeq → Diagnostic` |
 
 Adding a new model is a small PR — append a DP map to `const.PRODUCT_DP_MAPS`. Issues with diagnostic dumps welcome.
 
